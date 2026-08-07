@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hermes-agent.dev/protocol/v1/ready.schema.json",
+  "title": "Ready",
+  "allOf": [
+    { "$ref": "envelope-base.json" },
+    {
+      "type": "object",
+      "required": ["worker_id", "status", "features"],
+      "properties": {
+        "type": { "const": "ready" },
+        "worker_id": { "type": "string", "minLength": 1 },
+        "status": { "type": "string", "minLength": 1 },
+        "features": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  ]
+}

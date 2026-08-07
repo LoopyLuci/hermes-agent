@@ -1,0 +1,13 @@
+[package]
+name = "hermes-runtime-protocol"
+version = "0.1.0"
+edition = "2021"
+description = "Versioned protocol types for Hermes Agent multi-language runtime"
+license = "MIT"
+
+[dependencies]
+proptest = "1.11.0"
+serde.workspace = true
+serde_json.workspace = true
+tempfile = "3.27.0"
+uuid = { workspace = true, features = ["v4", "serde"] }

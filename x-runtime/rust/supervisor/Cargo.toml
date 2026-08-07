@@ -1,0 +1,28 @@
+[package]
+name = "hermes-runtime-supervisor"
+version = "0.1.0"
+edition = "2021"
+description = "Supervisor process for Hermes Agent multi-language worker runtime"
+license = "MIT"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync", "time", "io-util", "process"] }
+uuid = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+clap = { version = "4.5", features = ["derive"] }
+axum = "0.8"
+tower = "0.5"
+anyhow = "1.0.104"
+futures.workspace = true
+hermes-runtime-protocol = { version = "0.1.0", path = "../protocol" }
+parking_lot.workspace = true
+tempfile = "3.27.0"
+memmap2 = "0.9.5"
+
+[[bin]]
+name = "hermes-runtime-supervisor"
+path = "bin/main.rs"

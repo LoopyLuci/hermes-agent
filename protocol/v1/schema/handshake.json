@@ -1,0 +1,20 @@
+{
+  "title": "Handshake",
+  "allOf": [
+    {"$ref": "#/definitions/base"},
+    {
+      "required": ["worker_id"],
+      "properties": {
+        "type": {"const": "handshake"}
+      }
+    }
+  ],
+  "definitions": {
+    "base": {
+      "required": ["version"],
+      "properties": {
+        "version": {"type": "string"}
+      }
+    }
+  }
+}

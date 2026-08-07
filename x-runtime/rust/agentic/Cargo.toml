@@ -1,0 +1,17 @@
+[package]
+name = "hermes-runtime-agentic"
+version.workspace = true
+edition.workspace = true
+description = "Agentic primitives for Hermes Agent"
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+hermes-runtime-core = { path = "../core", optional = true }
+hermes-runtime-atomic = { path = "../atomic", optional = true }
+uuid.workspace = true

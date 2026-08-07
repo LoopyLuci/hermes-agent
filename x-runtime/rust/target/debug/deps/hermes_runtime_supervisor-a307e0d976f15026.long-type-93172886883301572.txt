@@ -1,0 +1,2 @@
+parking_lot::lock_api::RwLock<parking_lot::RawRwLock, HashMap<std::string::String, Arc<WorkerProcess>>>
+parking_lot::lock_api::RwLock<parking_lot::RawRwLock, HashMap<std::string::String, Arc<WorkerProcess>>>: Clone

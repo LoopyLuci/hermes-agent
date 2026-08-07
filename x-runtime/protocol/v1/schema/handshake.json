@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hermes-agent.dev/protocol/v1/handshake.schema.json",
+  "title": "Handshake",
+  "allOf": [
+    { "$ref": "envelope-base.json" },
+    {
+      "type": "object",
+      "required": ["worker_id", "worker_type", "capabilities"],
+      "properties": {
+        "type": { "const": "handshake" },
+        "worker_id": { "type": "string", "minLength": 1 },
+        "worker_type": { "type": "string", "minLength": 1 },
+        "capabilities": { "type": "array", "items": { "type": "string" } },
+        "config": { "type": "object" },
+        "abi_version": { "type": "string" },
+        "language_host": { "type": "string" },
+        "protocol_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
+        "features": {
+          "type": "object",
+          "properties": {
+            "hot_reload": { "type": "boolean" },
+            "durable_atomics": { "type": "boolean" },
+            "capability_tokens": { "type": "boolean" },
+            "checksum_algorithm": { "type": "string" }
+          }
+        }
+      }
+    }
+  ]
+}

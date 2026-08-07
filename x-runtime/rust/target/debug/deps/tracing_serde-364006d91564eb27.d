@@ -1,0 +1,6 @@
+D:\Projects\HermesAgentExpansion\x-runtime\rust\target\debug\deps\tracing_serde-364006d91564eb27.d: C:\Users\limpi\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-serde-0.2.0\src\lib.rs C:\Users\limpi\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-serde-0.2.0\src\fields.rs
+
+D:\Projects\HermesAgentExpansion\x-runtime\rust\target\debug\deps\libtracing_serde-364006d91564eb27.rmeta: C:\Users\limpi\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-serde-0.2.0\src\lib.rs C:\Users\limpi\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-serde-0.2.0\src\fields.rs
+
+C:\Users\limpi\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-serde-0.2.0\src\lib.rs:
+C:\Users\limpi\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\tracing-serde-0.2.0\src\fields.rs:

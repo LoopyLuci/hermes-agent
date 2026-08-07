@@ -1,0 +1,2 @@
+fn(axum::extract::State<Arc<Supervisor>>, axum::extract::Path<WorkerPathParam>, axum::Json<serde_json::Value>) -> impl futures::Future<Output = Result<impl IntoResponse, StatusCode>> {reload_handler}
+fn(axum::extract::State<Arc<Supervisor>>, axum::extract::Path<WorkerPathParam>, axum::Json<serde_json::Value>) -> impl futures::Future<Output = Result<impl IntoResponse, StatusCode>> {reload_handler}: Handler<_, _>

@@ -1,0 +1,21 @@
+{
+  "title": "Shutdown",
+  "allOf": [
+    {"$ref": "#/definitions/base"},
+    {
+      "required": ["grace_ms"],
+      "properties": {
+        "type": {"const": "shutdown"},
+        "grace_ms": {"type": "integer"}
+      }
+    }
+  ],
+  "definitions": {
+    "base": {
+      "required": ["version"],
+      "properties": {
+        "version": {"type": "string"}
+      }
+    }
+  }
+}
