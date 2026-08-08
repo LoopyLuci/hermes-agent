@@ -84,7 +84,7 @@ jobs:
         run: |-
           mkdir -p x-runtime/kotlin/dist
           curl -sSL -o x-runtime/kotlin/dist/kotlinc.zip https://github.com/JetBrains/kotlin/releases/download/v2.4.10/kotlin-compiler-2.4.10.zip
-          unzip -q x-runtime/kotlin/dist/kotlinc.zip -d x-runtime/kotlin/dist
+          unzip -q -o x-runtime/kotlin/dist/kotlinc.zip -d x-runtime/kotlin/dist
           rm x-runtime/kotlin/dist/kotlinc.zip
           echo "KOTLIN_HOME=$(pwd)/x-runtime/kotlin/dist/kotlinc" >> "$GITHUB_ENV"
           echo "$(pwd)/x-runtime/kotlin/dist/kotlinc/bin" >> "$GITHUB_PATH"
