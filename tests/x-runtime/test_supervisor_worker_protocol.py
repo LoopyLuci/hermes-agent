@@ -12,6 +12,8 @@ import unittest
 from pathlib import Path
 from urllib import request as urllib_request
 
+import pytest
+
 REPO = Path('.').resolve()
 TEMPLATE = REPO / 'x-runtime' / 'templates'
 BASE = REPO / 'x-runtime'
