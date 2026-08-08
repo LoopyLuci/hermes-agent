@@ -6,10 +6,8 @@ KOTLIN="$ROOT/x-runtime/kotlin/dist/kotlinc"
 OUT="$ROOT/x-runtime/kotlin/out"
 TEST_OUT="$ROOT/x-runtime/kotlin/test-out"
 STDLIB="$KOTLIN/lib/kotlin-stdlib.jar"
-TEST_STDLIB="$KOTLIN/lib/kotlin-test-1.5.31.jar"
+TEST_STDLIB="$KOTLIN/lib/kotlin-test.jar"
 COROUTINES="$ROOT/x-runtime/kotlin/lib/kotlinx-coroutines-core-jvm.jar"
-PRELOADER="$KOTLIN/lib/kotlin-preloader.jar"
-COMPILER="$KOTLIN/lib/kotlin-compiler.jar"
 
 MAIN_SOURCES=(
   src/jvmMain/kotlin/hermes/abi/StableAbi.kt
@@ -31,21 +29,22 @@ JAVA_RUNNER="src/jvmTest/java/hermes/abi/StableAbiBenchmarkRunner.java"
 mkdir -p "$OUT" "$TEST_OUT"
 
 cd "$ROOT/x-runtime/kotlin"
-java -cp "$PRELOADER" org.jetbrains.kotlin.preloading.Preloader \
-  -cp "$COMPILER" \
-  org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-  -jvm-target 21 \
-  -cp "$STDLIB" \
-  -d "$OUT" \
-  "${MAIN_SOURCES[@]}"
 
-java -cp "$PRELOADER" org.jetbrains.kotlin.preloading.Preloader \
-  -cp "$COMPILER" \
-  org.jetbrains.kotlin.cli.jvm.K2JVMCompiler \
-  -jvm-target 21 \
-  -cp "$TEST_OUT:$OUT:$STDLIB:$TEST_STDLIB:$COROUTINES" \
-  -d "$TEST_OUT" \
-  "${TEST_SOURCES[@]}"
+if ! command -v kotlinc >/dev/null 2>&1; then
+  if [ -x "$KOTLIN/bin/kotlinc" ]; then
+    export PATH="$KOTLIN/bin:$PATH"
+  fi
+fi
+
+if ! command -v kotlinc >/dev/null 2>&1; then
+  echo "kotlinc not found; install Kotlin to $KOTLIN or add it to PATH" >&2
+  exit 1
+fi
+
+kotlinc -jvm-target 21 -cp "$STDLIB" -d "$OUT" "${MAIN_SOURCES[@]}"
+
+TEST_CP="$TEST_OUT:$OUT:$STDLIB:$TEST_STDLIB:$COROUTINES"
+kotlinc -jvm-target 21 -cp "$TEST_CP" -d "$TEST_OUT" "${TEST_SOURCES[@]}"
 
 if [ -f "$JAVA_RUNNER" ]; then
   javac -cp "$OUT:$STDLIB" -d "$TEST_OUT" "$JAVA_RUNNER"

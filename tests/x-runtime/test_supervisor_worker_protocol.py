@@ -43,6 +43,7 @@ def _post(url: str, payload: dict) -> dict:
         return json.loads(response.read().decode('utf-8'))
 
 
+@pytest.mark.live_system_guard_bypass
 class TestSupervisorWorkerProtocol(unittest.TestCase):
     def _python_worker_path(self) -> Path:
         return TEMPLATE / 'python' / 'example_worker.py'

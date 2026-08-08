@@ -89,6 +89,22 @@ jobs:
           echo "$(pwd)/x-runtime/kotlin/dist/kotlinc/bin" >> "$GITHUB_PATH"
         shell: bash
 
+      - name: Validate Kotlin compiler cache
+        run: |-
+          if [ ! -x x-runtime/kotlin/dist/kotlinc/bin/kotlinc ] || \
+             [ ! -f x-runtime/kotlin/dist/kotlinc/lib/kotlin-preloader.jar ] || \
+             [ ! -f x-runtime/kotlin/dist/kotlinc/lib/kotlin-compiler.jar ]; then
+            echo "stale kotlin cache; forcing refresh" >&2
+            rm -rf x-runtime/kotlin/dist
+            mkdir -p x-runtime/kotlin/dist
+            curl -sSL -o x-runtime/kotlin/dist/kotlinc.zip https://github.com/JetBrains/kotlin/releases/download/v2.4.10/kotlin-compiler-2.4.10.zip
+            unzip -q -o x-runtime/kotlin/dist/kotlinc.zip -d x-runtime/kotlin/dist
+            rm x-runtime/kotlin/dist/kotlinc.zip
+          fi
+          echo "KOTLIN_HOME=$(pwd)/x-runtime/kotlin/dist/kotlinc" >> "$GITHUB_ENV"
+          echo "$(pwd)/x-runtime/kotlin/dist/kotlinc/bin" >> "$GITHUB_PATH"
+        shell: bash
+
       - name: Install Python dependencies
         run: |-
           python -m pip install --upgrade pip
