@@ -113,7 +113,7 @@ jobs:
           cd x-runtime/rust
           cargo build --release -p hermes-runtime-abi
           cd ../..
-          pytest tests/x-runtime -q
+          PYTHONPATH=. pytest tests/x-runtime -q
         shell: bash
 
       - name: Run TypeScript tests
