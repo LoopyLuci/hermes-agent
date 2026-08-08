@@ -1,0 +1,4 @@
+{:paths ["src" "test"]
+ :tasks
+ {:test
+  {:exec (clojure "-M:test")}}}

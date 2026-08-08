@@ -1,0 +1,20 @@
+{
+  "title": "ReloadRequest",
+  "allOf": [
+    {"$ref": "#/definitions/base"},
+    {
+      "required": ["reload_id", "path", "checksum"],
+      "properties": {
+        "type": {"const": "reload.request"}
+      }
+    }
+  ],
+  "definitions": {
+    "base": {
+      "required": ["version"],
+      "properties": {
+        "version": {"type": "string"}
+      }
+    }
+  }
+}

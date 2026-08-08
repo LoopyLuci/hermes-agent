@@ -1,0 +1,149 @@
+name: x-runtime Kotlin verification
+
+on:
+  workflow_dispatch:
+    inputs:
+      matrix:
+        description: 'OS matrix to run'
+        required: true
+        default: '["ubuntu-latest","windows-latest"]'
+        type: string
+  pull_request:
+    paths:
+      - 'x-runtime/kotlin/**'
+      - 'x-runtime/rust/abi/**'
+      - 'x-runtime/protocol/**'
+      - 'tests/x-runtime/**'
+  push:
+    branches: [main]
+    paths:
+      - 'x-runtime/kotlin/**'
+      - 'x-runtime/rust/abi/**'
+      - 'x-runtime/protocol/**'
+      - 'tests/x-runtime/**'
+
+jobs:
+  kotlin-verify:
+    name: Kotlin x-runtime verification
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          components: rustfmt, clippy
+
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: '0.5.x'
+
+      - name: Cache Kotlin compiler
+        uses: actions/cache@v4
+        with:
+          path: x-runtime/kotlin/dist
+          key: kotlin-2.4.10-${{ runner.os }}
+          restore-keys: |
+            kotlin-2.4.10-${{ runner.os }}
+
+      - name: Cache Rust dependencies
+        uses: actions/cache@v4
+        with:
+          path: |-
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: rust-${{ runner.os }}-${{ hashFiles('x-runtime/rust/Cargo.toml', 'x-runtime/rust/supervisor/Cargo.toml') }}
+          restore-keys: |-
+            rust-${{ runner.os }}-
+
+      - name: Install Kotlin compiler
+        if: steps.cache-kotlin.outputs.cache-hit != 'true'
+        run: |-
+          mkdir -p x-runtime/kotlin/dist
+          curl -sSL -o x-runtime/kotlin/dist/kotlinc.zip https://github.com/JetBrains/kotlin/releases/download/v2.4.10/kotlin-compiler-2.4.10.zip
+          unzip -q -o x-runtime/kotlin/dist/kotlinc.zip -d x-runtime/kotlin/dist
+          rm x-runtime/kotlin/dist/kotlinc.zip
+          echo "KOTLIN_HOME=$(pwd)/x-runtime/kotlin/dist/kotlinc" >> "$GITHUB_ENV"
+          echo "$(pwd)/x-runtime/kotlin/dist/kotlinc/bin" >> "$GITHUB_PATH"
+        shell: bash
+
+      - name: Validate Kotlin compiler cache
+        run: |-
+          if [ ! -x x-runtime/kotlin/dist/kotlinc/bin/kotlinc ] || \
+             [ ! -f x-runtime/kotlin/dist/kotlinc/lib/kotlin-preloader.jar ] || \
+             [ ! -f x-runtime/kotlin/dist/kotlinc/lib/kotlin-compiler.jar ]; then
+            echo "stale kotlin cache; forcing refresh" >&2
+            rm -rf x-runtime/kotlin/dist
+            mkdir -p x-runtime/kotlin/dist
+            curl -sSL -o x-runtime/kotlin/dist/kotlinc.zip https://github.com/JetBrains/kotlin/releases/download/v2.4.10/kotlin-compiler-2.4.10.zip
+            unzip -q -o x-runtime/kotlin/dist/kotlinc.zip -d x-runtime/kotlin/dist
+            rm x-runtime/kotlin/dist/kotlinc.zip
+          fi
+          echo "KOTLIN_HOME=$(pwd)/x-runtime/kotlin/dist/kotlinc" >> "$GITHUB_ENV"
+          echo "$(pwd)/x-runtime/kotlin/dist/kotlinc/bin" >> "$GITHUB_PATH"
+        shell: bash
+
+      - name: Install Python dependencies
+        run: |-
+          python -m pip install --upgrade pip
+          pip install pytest pyyaml httpx
+        shell: bash
+
+      - name: Build Rust protocol crate
+        run: |-
+          cd x-runtime/rust
+          cargo build --release -p hermes-runtime-protocol
+        shell: bash
+
+      - name: Build supervisor lib
+        run: |-
+          cd x-runtime/rust
+          cargo test -p hermes-runtime-supervisor --lib
+        shell: bash
+
+      - name: Run Python x-runtime tests
+        run: |-
+          cd x-runtime/rust
+          cargo build --release -p hermes-runtime-abi
+          cd ../..
+          PYTHONPATH=. pytest tests/x-runtime -q
+        shell: bash
+
+      - name: Run TypeScript tests
+        run: |-
+          cd x-runtime/typescript
+          npx vitest run
+        shell: bash
+
+      - name: Run Kotlin tests
+        run: |-
+          cd x-runtime/kotlin
+          chmod +x scripts/build.sh
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            powershell scripts/build.ps1 test
+          else
+            bash scripts/build.sh test
+          fi
+        shell: bash

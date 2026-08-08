@@ -1,0 +1,8 @@
+pyproject.toml
+src/hermes_worker/__init__.py
+src/hermes_worker/generated_protocol.py
+src/hermes_worker/protocol.py
+src/hermes_worker_sdk.egg-info/PKG-INFO
+src/hermes_worker_sdk.egg-info/SOURCES.txt
+src/hermes_worker_sdk.egg-info/dependency_links.txt
+src/hermes_worker_sdk.egg-info/top_level.txt

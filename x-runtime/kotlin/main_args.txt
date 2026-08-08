@@ -1,0 +1,8 @@
+-jvm-target
+21
+-cp
+D:/Projects/HermesAgentExpansion/x-runtime/kotlin/dist/kotlinc/lib/kotlin-stdlib.jar
+-d
+D:/Projects/HermesAgentExpansion/x-runtime/kotlin/out
+D:/Projects/HermesAgentExpansion/x-runtime/kotlin/src/jvmMain/kotlin/hermes/abi/StableAbi.kt
+D:/Projects/HermesAgentExpansion/x-runtime/kotlin/src/jvmMain/kotlin/hermes/abi/StableAbiBenchmark.kt

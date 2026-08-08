@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: hermes-worker-sdk
+Version: 0.1.0
+Summary: Python SDK for Hermes multi-language worker protocol
+License: MIT
+Requires-Python: <3.14,>=3.11
+Description-Content-Type: text/markdown

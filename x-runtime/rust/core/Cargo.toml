@@ -1,0 +1,27 @@
+[package]
+name = "hermes-runtime-core"
+version.workspace = true
+edition.workspace = true
+description = "Core runtime primitives for Hermes Agent multi-language expansion"
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
+tokio.workspace = true
+parking_lot.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+mimalloc.workspace = true
+bytes.workspace = true
+bincode.workspace = true
+futures.workspace = true
+
+[lib]
+name = "hermes_runtime_core"
+crate-type = ["cdylib", "rlib"]
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }

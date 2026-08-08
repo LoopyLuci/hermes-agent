@@ -1,0 +1,15 @@
+[package]
+name = "hermes-runtime-abi"
+version = "0.1.0"
+edition = "2021"
+description = "Stable #[repr(C)] ABI manifest for cross-language binding tests"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+hermes-runtime-protocol = { path = "../protocol" }
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true

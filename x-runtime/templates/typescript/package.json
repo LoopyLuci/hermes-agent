@@ -1,0 +1,13 @@
+{
+  "name": "worker-template-typescript",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npx tsx --test tests/runtime.test.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.9",
+    "vitest": "^3.2.2"
+  }
+}

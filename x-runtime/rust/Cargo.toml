@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = [
+  "abi",
+  "core",
+  "atomic",
+  "supervisor",
+  "plugin-host",
+  "agentic",
+  "protocol",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.80"
+license = "MIT"
+repository = "https://github.com/LoopyLuci/hermes-agent"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+tokio = { version = "1.48", features = ["rt-multi-thread", "macros", "sync", "time"] }
+parking_lot = "0.12"
+pin-project = "1.1"
+futures = "0.3"
+uuid = { version = "1.11", features = ["v4", "serde"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["json", "env-filter"] }
+libloading = "0.8"
+pyo3 = { version = "0.24", features = ["extension-module", "abi3"] }
+mimalloc = "0.1"
+bytes = "1.9"
+bincode = "1.3"

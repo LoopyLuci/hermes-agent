@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hermes-agent.dev/protocol/v1/task-submit.schema.json",
+  "title": "TaskSubmit",
+  "allOf": [
+    { "$ref": "envelope-base.json" },
+    {
+      "type": "object",
+      "required": ["task_id", "method"],
+      "properties": {
+        "type": { "const": "task.submit" },
+        "task_id": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 },
+        "params": { "type": "object" },
+        "timeout_ms": { "type": "integer", "minimum": 0 }
+      }
+    }
+  ]
+}

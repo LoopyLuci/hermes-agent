@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hermes-agent.dev/protocol/v1/shutdown.schema.json",
+  "title": "Shutdown",
+  "allOf": [
+    { "$ref": "envelope-base.json" },
+    {
+      "type": "object",
+      "required": ["grace_ms"],
+      "properties": {
+        "type": { "const": "shutdown" },
+        "grace_ms": { "type": "integer", "minimum": 0 }
+      }
+    }
+  ]
+}

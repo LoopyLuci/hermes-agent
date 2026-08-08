@@ -1,0 +1,18 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hermes-agent.dev/protocol/v1/reload-completed.schema.json",
+  "title": "ReloadCompleted",
+  "allOf": [
+    { "$ref": "envelope-base.json" },
+    {
+      "type": "object",
+      "required": ["reload_id", "status", "checksum"],
+      "properties": {
+        "type": { "const": "reload.completed" },
+        "reload_id": { "type": "integer", "minimum": 0 },
+        "status": { "type": "string", "minLength": 1 },
+        "checksum": { "type": "string", "minLength": 1 }
+      }
+    }
+  ]
+}

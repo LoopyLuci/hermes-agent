@@ -1,0 +1,4 @@
+{:paths ["src" "test"]
+ :aliases
+ {:test
+  {:main-opts ["-m" "hermes.protocol-test"]}}}

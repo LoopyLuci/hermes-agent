@@ -54,6 +54,42 @@ def _is_delegated_child_context() -> bool:
         return False
 
 
+def _maybe_dispatch_x_runtime(function_name: str, function_args: Dict[str, Any], *, task_id: str, session_id: str) -> Optional[str]:
+    """Dispatch a tool call through the optional x-runtime backend if enabled."""
+    try:
+        from hermes_cli.x_runtime_bridge import resolve_x_runtime_runtime_credentials
+        from hermes_cli.config import load_config
+    except Exception:
+        return None
+
+    try:
+        config = load_config()
+        credentials = resolve_x_runtime_runtime_credentials(config)
+    except Exception:
+        return None
+
+    endpoint = (credentials.get("endpoint") or "").strip()
+    if not endpoint:
+        return None
+
+    try:
+        from hermes_worker.protocol import WorkerTransport
+        payload = {
+            "tool": function_name,
+            "args": function_args or {},
+            "task_id": task_id,
+            "session_id": session_id,
+        }
+        transport = WorkerTransport(endpoint=endpoint)
+        response = transport.invoke_tool(payload)
+        if isinstance(response, dict):
+            return json.dumps(response)
+        return str(response)
+    except Exception as dispatch_exc:
+        logger.debug("x-runtime dispatch failed: %s", dispatch_exc, exc_info=True)
+        return None
+
+
 # =============================================================================
 # Async Bridging  (single source of truth -- used by registry.dispatch too)
 # =============================================================================
@@ -1424,6 +1460,10 @@ def handle_function_call(
                         session_id=session_id,
                         user_task=user_task,
                     )
+
+            _x_runtime_result = _maybe_dispatch_x_runtime(function_name, function_args, task_id=task_id or "", session_id=session_id or "")
+            if _x_runtime_result is not None:
+                return _x_runtime_result
             if skip_tool_execution_middleware:
                 result = _dispatch(function_args)
             else:
