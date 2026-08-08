@@ -96,10 +96,10 @@ jobs:
           pip install pytest
         shell: bash
 
-      - name: Build Rust ABI
+      - name: Build Rust protocol crate
         run: |-
           cd x-runtime/rust
-          cargo build --release -p hermes-runtime-abi
+          cargo build --release -p hermes-runtime-protocol
         shell: bash
 
       - name: Build supervisor lib

@@ -102,7 +102,7 @@ class TestConcurrentReloadAtomicity(unittest.TestCase):
                             }):
                                 result = model_tools._maybe_dispatch_x_runtime(
                                     "terminal",
-                                    {"command": "pwd"},
+                                    {"command": "pwd", "value": "pwd"},
                                     task_id=task_id,
                                     session_id=session_id,
                                 )
