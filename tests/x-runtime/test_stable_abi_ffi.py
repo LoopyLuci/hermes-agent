@@ -10,15 +10,35 @@ class TestStableAbiFfi(unittest.TestCase):
     @classmethod
     def _load_library(cls):
         repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir, os.pardir))
-        candidates = [
-            os.path.join(repo_root, "x-runtime", "rust", "target", "release", "hermes_runtime_abi.dll"),
-            os.path.join(repo_root, "x-runtime", "rust", "target", "release", "libhermes_runtime_abi.so"),
-            os.path.join(repo_root, "x-runtime", "rust", "target", "release", "libhermes_runtime_abi.dylib"),
-        ]
+        if os.name == "nt":
+            candidates = [
+                os.path.join(repo_root, "x-runtime", "rust", "target", "release", "hermes_runtime_abi.dll"),
+                os.path.join(repo_root, "x-runtime", "rust", "target", "release", "libhermes_runtime_abi.so"),
+                os.path.join(repo_root, "x-runtime", "rust", "target", "release", "libhermes_runtime_abi.dylib"),
+            ]
+        elif os.name == "darwin":
+            candidates = [
+                os.path.join(repo_root, "x-runtime", "rust", "target", "release", "libhermes_runtime_abi.dylib"),
+                os.path.join(repo_root, "x-runtime", "rust", "target", "release", "libhermes_runtime_abi.so"),
+                os.path.join(repo_root, "x-runtime", "rust", "target", "release", "hermes_runtime_abi.dll"),
+            ]
+        else:
+            candidates = [
+                os.path.join(repo_root, "x-runtime", "rust", "target", "release", "libhermes_runtime_abi.so"),
+                os.path.join(repo_root, "x-runtime", "rust", "target", "release", "hermes_runtime_abi.dll"),
+                os.path.join(repo_root, "x-runtime", "rust", "target", "release", "libhermes_runtime_abi.dylib"),
+            ]
         for path in candidates:
             if os.path.exists(path):
                 return ctypes.cdll.LoadLibrary(path)
-        raise FileNotFoundError("hermes_runtime_abi cdylib not found in target/release")
+        raise cls._missing_library_error()
+
+    @classmethod
+    def _missing_library_error(cls):
+        return FileNotFoundError(
+            "hermes_runtime_abi cdylib not found in target/release; "
+            "build the release artifact to enable this test"
+        )
 
     def test_manifest_size_matches_struct(self) -> None:
         lib = self._load_library()

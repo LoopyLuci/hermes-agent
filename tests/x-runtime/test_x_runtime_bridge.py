@@ -38,16 +38,18 @@ class TestBridgeDisabledAndUnavailable(unittest.TestCase):
                 bridge.maybe_dispatch({}, {})
 
     def test_abi_version_mismatch_raises(self) -> None:
-        abi = Path("x-runtime/rust/target/release/hermes_runtime_abi.dll")
+        abi = Path('x-runtime/rust/target/release/hermes_runtime_abi.dll')
         if not abi.exists():
-            self.skipTest("abi dll missing")
+            abi = Path('x-runtime/rust/target/release/libhermes_runtime_abi.so')
+        if not abi.exists():
+            self.skipTest('abi cdylib missing')
         with mock.patch(
-            "hermes_cli.x_runtime_bridge.load_abi_library", return_value=abi
+            'hermes_cli.x_runtime_bridge.load_abi_library', return_value=abi
         ), mock.patch(
-            "hermes_cli.x_runtime_bridge.check_abi_version", return_value=2
+            'hermes_cli.x_runtime_bridge.check_abi_version', return_value=2
         ):
             bridge = XRuntimeBridge(
-                enabled=True, endpoint="http://127.0.0.1:18181"
+                enabled=True, endpoint='http://127.0.0.1:18181'
             )
             with self.assertRaises(XRuntimeBridgeAbiMismatch):
                 bridge.maybe_dispatch({}, {})

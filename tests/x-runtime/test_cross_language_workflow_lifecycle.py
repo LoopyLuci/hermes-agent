@@ -13,7 +13,7 @@ from unittest import mock
 from urllib import request as urllib_request
 
 REPO = Path(__file__).resolve().parent.parent.parent
-SUPERVISOR = REPO / "x-runtime" / "rust" / "target" / "debug" / "hermes-runtime-supervisor.exe"
+SUPERVISOR = REPO / "x-runtime" / "rust" / "target" / "debug" / ("hermes-runtime-supervisor.exe" if os.name == "nt" else "hermes-runtime-supervisor")
 E2E_WORKER = REPO / "x-runtime" / "templates" / "python" / "e2e_worker.py"
 
 

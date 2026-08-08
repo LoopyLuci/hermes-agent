@@ -16,7 +16,10 @@ REPO = Path('.').resolve()
 TEMPLATE = REPO / 'x-runtime' / 'templates'
 BASE = REPO / 'x-runtime'
 PYTHONPATH = str(BASE / 'python' / 'sdk' / 'src')
-SUPERVISOR = REPO / 'x-runtime' / 'rust' / 'target' / 'debug' / 'hermes-runtime-supervisor.exe'
+SUPERVISOR_BIN = "hermes-runtime-supervisor.exe" if os.name == "nt" else "hermes-runtime-supervisor"
+SUPERVISOR = REPO / 'x-runtime' / 'rust' / 'target' / 'debug' / SUPERVISOR_BIN
+SUPERVISOR_STATUS_PORT = 18183
+SUPERVISOR_HEALTH_PORT = 18185
 
 
 def _wait_for(url: str, timeout: float = 5.0) -> None:
@@ -97,14 +100,17 @@ class TestSupervisorWorkerProtocol(unittest.TestCase):
             self.assertEqual(msg['task_id'], 'task-1')
             self.assertTrue(msg['ok'])
         finally:
-            proc.kill()
-            proc.wait()
+            proc.terminate()
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                pass
 
     def test_supervisor_reload_endpoint_returns_ok(self) -> None:
         if not SUPERVISOR.exists():
             self.skipTest('supervisor binary not built')
         proc = subprocess.Popen(
-            [str(SUPERVISOR), '127.0.0.1:18183'],
+            [str(SUPERVISOR), f'127.0.0.1:{SUPERVISOR_STATUS_PORT}'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,
@@ -162,7 +168,7 @@ class TestSupervisorWorkerProtocol(unittest.TestCase):
         if not SUPERVISOR.exists():
             self.skipTest('supervisor binary not built')
         proc = subprocess.Popen(
-            [str(SUPERVISOR), '127.0.0.1:18185'],
+            [str(SUPERVISOR), f'127.0.0.1:{SUPERVISOR_HEALTH_PORT}'],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

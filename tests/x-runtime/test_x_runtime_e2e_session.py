@@ -14,7 +14,8 @@ from pathlib import Path
 from urllib import request as urllib_request
 
 REPO = Path(__file__).resolve().parent.parent.parent
-SUPERVISOR = REPO / "x-runtime" / "rust" / "target" / "debug" / "hermes-runtime-supervisor.exe"
+SUPERVISOR_BIN = "hermes-runtime-supervisor.exe" if os.name == "nt" else "hermes-runtime-supervisor"
+SUPERVISOR = REPO / "x-runtime" / "rust" / "target" / "debug" / SUPERVISOR_BIN
 E2E_WORKER = REPO / "x-runtime" / "templates" / "python" / "e2e_worker.py"
 
 
