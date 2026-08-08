@@ -17,7 +17,7 @@ $Kotlin = Join-Path $KotlinRoot 'dist/kotlinc'
 $Out = Join-Path $KotlinRoot 'out'
 $TestOut = Join-Path $KotlinRoot 'test-out'
 $Stdlib = Join-Path $Kotlin 'lib/kotlin-stdlib.jar'
-$TestStdlib = Join-Path $Kotlin 'lib/kotlin-test-1.5.31.jar'
+$TestStdlib = Join-Path $Kotlin 'lib/kotlin-test.jar'
 $Coroutines = Join-Path $KotlinRoot 'lib/kotlinx-coroutines-core-jvm.jar'
 $Compiler = Join-Path $Kotlin 'lib/kotlin-compiler.jar'
 
