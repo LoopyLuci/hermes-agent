@@ -1,2 +1,0 @@
-fn(axum::extract::State<Arc<Supervisor>>, Json<SpawnWorkerRequest>) -> impl std::future::Future<Output = Result<impl IntoResponse, StatusCode>> {spawn_worker_handler}
-fn(axum::extract::State<Arc<Supervisor>>, Json<SpawnWorkerRequest>) -> impl std::future::Future<Output = Result<impl IntoResponse, StatusCode>> {spawn_worker_handler}: Handler<_, _>

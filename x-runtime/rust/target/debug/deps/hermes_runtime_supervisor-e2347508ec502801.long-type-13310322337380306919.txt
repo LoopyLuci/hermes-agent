@@ -1,2 +1,0 @@
-fn(axum::extract::State<Arc<Supervisor>>, axum::extract::Path<WorkerPathParam>) -> impl futures::Future<Output = Result<impl IntoResponse, StatusCode>> {worker_status_handler}
-fn(axum::extract::State<Arc<Supervisor>>, axum::extract::Path<WorkerPathParam>) -> impl futures::Future<Output = Result<impl IntoResponse, StatusCode>> {worker_status_handler}: Handler<_, _>
