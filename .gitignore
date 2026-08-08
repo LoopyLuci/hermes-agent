@@ -104,6 +104,8 @@ web/public/ds-assets/
 .release_notes.md
 mini-swe-agent/
 
+x-runtime/rust/target/
+
 # Nix
 .direnv/
 .nix-stamps/
