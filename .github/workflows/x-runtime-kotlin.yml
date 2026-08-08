@@ -93,7 +93,7 @@ jobs:
       - name: Install Python dependencies
         run: |-
           python -m pip install --upgrade pip
-          pip install pytest pyyaml
+          pip install pytest pyyaml httpx
         shell: bash
 
       - name: Build Rust protocol crate
