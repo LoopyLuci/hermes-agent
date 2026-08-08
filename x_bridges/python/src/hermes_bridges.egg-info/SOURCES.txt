@@ -1,0 +1,14 @@
+README.md
+pyproject.toml
+src/hermes_bridges/__init__.py
+src/hermes_bridges.egg-info/PKG-INFO
+src/hermes_bridges.egg-info/SOURCES.txt
+src/hermes_bridges.egg-info/dependency_links.txt
+src/hermes_bridges.egg-info/top_level.txt
+src/hermes_bridges/bridge/__init__.py
+src/hermes_bridges/bridge/durable_atomic.py
+src/hermes_bridges/self_improvement/__init__.py
+src/hermes_bridges/self_improvement/loop.py
+src/hermes_bridges/self_improvement/mutator.py
+tests/test_bridge.py
+tests/test_self_improvement.py
