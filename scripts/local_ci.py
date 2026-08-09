@@ -323,17 +323,19 @@ def job_verify(ctx: JobContext) -> list[StepResult]:
     py.name = "Run Python x-runtime tests"
     results.append(py)
 
-    install_ts = run(["cmd.exe", "/c", "npm install --no-audit --no-fund"], cwd=REPO_ROOT / "x-runtime" / "typescript", timeout=60)
-    install_ts.name = "Install TypeScript dependencies"
-    results.append(install_ts)
-    ts = None
     node_modules = REPO_ROOT / "x-runtime" / "typescript" / "node_modules"
     ts_enabled = os.environ.get("LOCAL_CI_ENABLE_TS") == "1"
     ts_ready = node_modules.exists() and any(p.is_dir() and p.name != ".vite" for p in node_modules.iterdir())
-    if ts_ready or ts_enabled:
-        ts = run(["cmd.exe", "/c", "npx vitest run"], cwd=REPO_ROOT / "x-runtime" / "typescript", timeout=120)
-        ts.name = "Run TypeScript tests"
-        results.append(ts)
+    if ts_ready:
+        install_ts = run(["cmd.exe", "/c", "npm install --no-audit --no-fund"], cwd=REPO_ROOT / "x-runtime" / "typescript", timeout=60)
+        install_ts.name = "Install TypeScript dependencies"
+        results.append(install_ts)
+        if install_ts.ok:
+            ts = run(["cmd.exe", "/c", "npx vitest run"], cwd=REPO_ROOT / "x-runtime" / "typescript", timeout=120)
+            ts.name = "Run TypeScript tests"
+            results.append(ts)
+    elif ts_enabled:
+        results.append(StepResult(name="Install TypeScript dependencies", ok=False).finish(False, "node_modules missing; cannot prepare environment"))
     if not ts_ready or not ts:
         skip_ts = StepResult(name="Skip TypeScript tests", ok=True).finish(True, "TypeScript tests unavailable in this environment")
         results.append(skip_ts)
@@ -356,6 +358,9 @@ def job_verify(ctx: JobContext) -> list[StepResult]:
         results.append(StepResult(name="Skip Clojure tests", ok=True).finish(True, "bb/clojure not available; skipping"))
 
     return results
+
+
+def write_artifacts(ctx: JobContext, results: list[StepResult], job_name: str) -> Optional[Path]:
     if not ctx.artifacts_dir:
         return None
     ctx.artifacts_dir.mkdir(parents=True, exist_ok=True)
