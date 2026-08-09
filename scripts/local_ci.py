@@ -1,70 +1,46 @@
-#!/usr/bin/env python3
-"""Local CI/CD pipeline runner with no GitHub dependency.
-
-Replicates selected verification steps as local jobs:
-- source checkout/prepare
-- cache restore/store for Rust
-- Rust build/test
-- Python test execution with PYTHONPATH=.
-- optional language steps, skipped when unavailable
-- status reporting in terminal and optional JSON artifact
-"""
-from __future__ import annotations
-
 import argparse
-import hashlib
 import json
 import os
-import platform
 import shutil
 import subprocess
 import sys
 import time
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Optional
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(".").resolve()
 CACHE_DIR = REPO_ROOT / ".cache" / "local-ci"
-RUST_CACHE = CACHE_DIR / "rust"
 
 
-@dataclass
 class StepResult:
-    name: str
-    ok: bool = True
-    started: float = field(default_factory=time.time)
-    finished: float = field(default_factory=time.time)
-    duration: float = 0.0
-    output: str = ""
-
-    def finish(self, ok: bool, output: str) -> "StepResult":
-        self.finished = time.time()
-        self.duration = self.finished - self.started
+    def __init__(self, name: str, ok: bool, started: float) -> None:
+        self.name = name
         self.ok = ok
-        self.output = output
+        self.started = started
+        self.output = ""
+        self.duration = 0.0
+
+    def finish(self, ok: bool, output: str = "") -> "StepResult":
+        self.ok = ok
+        self.output = output or ""
+        self.duration = round(time.time() - self.started, 3)
         return self
 
 
-@dataclass
 class JobContext:
-    matrix: dict[str, str]
-    cache: bool = True
-    clean: bool = False
-    artifacts_dir: Optional[Path] = None
+    def __init__(self, matrix: dict, cache: bool, clean: bool, artifacts_dir: Optional[Path]) -> None:
+        self.matrix = matrix
+        self.cache = cache
+        self.clean = clean
+        self.artifacts_dir = artifacts_dir
 
-    def cache_key(self, name: str, inputs: list[str]) -> str:
-        blob = json.dumps({"matrix": self.matrix, "inputs": inputs}, sort_keys=True, default=str)
-        return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:16]
+    def cache_key(self, step: str, inputs: list[str]) -> str:
+        payload = json.dumps({"step": step, "inputs": inputs, "matrix": self.matrix}, sort_keys=True)
+        return f"{hash(payload) & 0xFFFFFFFF:08x}"
 
 
-def run(
-    cmd: list[str],
-    cwd: Path = REPO_ROOT,
-    env: Optional[dict[str, str]] = None,
-    timeout: Optional[int] = None,
-) -> StepResult:
+def run(cmd: list[str], cwd: Path = REPO_ROOT, env: Optional[dict[str, str]] = None, timeout: Optional[int] = None) -> StepResult:
     merged_env = os.environ.copy()
     if env:
         merged_env.update(env)
@@ -90,134 +66,16 @@ def run(
 
 def cache_restore(step: str, key: str) -> tuple[bool, Path]:
     store = CACHE_DIR / step / key
-    if store.exists():
-        return True, store
-    return False, store
+    return store.exists(), store
 
 
 def cache_save(step: str, key: str, source: Path) -> None:
     target = CACHE_DIR / step / key
-    target.parent.mkdir(parents=True, exist_ok=True)
     if source.exists():
+        target.parent.mkdir(parents=True, exist_ok=True)
         if target.exists():
             shutil.rmtree(target)
         shutil.copytree(source, target)
-
-
-def job_verify(ctx: JobContext) -> list[StepResult]:
-    results: list[StepResult] = []
-    results.append(run(["git", "rev-parse", "--show-toplevel"], cwd=REPO_ROOT))
-
-    cargo = shutil.which("cargo")
-    python_exec = sys.executable if shutil.which(sys.executable) else shutil.which("python") or shutil.which("python3")
-    has_pip = bool(python_exec)
-
-    rust_key = ctx.cache_key("rust", ["x-runtime/rust/Cargo.toml", "x-runtime/rust/supervisor/Cargo.toml"])
-    hit, rust_store = cache_restore("rust", rust_key)
-    if hit and ctx.cache:
-        results.append(StepResult(name="Restore Rust cache", ok=True, output=f"cache={rust_store}").finish(True, ""))
-    else:
-        results.append(StepResult(name="Restore Rust cache", ok=True, output="miss").finish(True, ""))
-
-    if cargo:
-        rust = run([cargo, "build", "--release", "-p", "hermes-runtime-protocol"], cwd=REPO_ROOT / "x-runtime" / "rust")
-        rust.name = "Build Rust protocol crate"
-        results.append(rust)
-        if rust.ok and ctx.cache:
-            cache_save("rust", rust_key, RUST_CACHE)
-    else:
-        results.append(StepResult(name="Build Rust protocol crate", ok=False).finish(False, "cargo not found; skipping"))
-        results.append(StepResult(name="Run Rust supervisor tests", ok=False).finish(False, "cargo not found; skipping"))
-
-    if python_exec and has_pip:
-        pip = run([python_exec, "-m", "pip", "install", "--upgrade", "pip"])
-        pip.name = "Install pip"
-        results.append(pip)
-        deps = run([python_exec, "-m", "pip", "install", "pytest", "pyyaml", "httpx"])
-        deps.name = "Install Python dependencies"
-        results.append(deps)
-    else:
-        results.append(StepResult(name="Install pip", ok=False).finish(False, "python/pip not found; skipping"))
-        results.append(StepResult(name="Install Python dependencies", ok=False).finish(False, "python/pip not found; skipping"))
-
-    if cargo:
-        abi = run([cargo, "build", "--release", "-p", "hermes-runtime-abi"], cwd=REPO_ROOT / "x-runtime" / "rust")
-    abi.name = "Build Rust ABI crate"
-    results.append(abi)
-    py = run([sys.executable, "-m", "pytest", "tests/x-runtime", "-q"], cwd=REPO_ROOT, env={"PYTHONPATH": str(REPO_ROOT)})
-    py.name = "Run Python x-runtime tests"
-    results.append(py)
-
-    node_modules = REPO_ROOT / "x-runtime" / "typescript" / "node_modules"
-    ts_enabled = os.environ.get("LOCAL_CI_ENABLE_TS") == "1"
-    ts_ready = node_modules.exists() and any(p.is_dir() and p.name != ".vite" for p in node_modules.iterdir())
-    install_ts = None
-    ts = None
-    if ts_ready or ts_enabled:
-        install_ts = run(["cmd.exe", "/c", "npm install --no-audit --no-fund"], cwd=REPO_ROOT / "x-runtime" / "typescript", timeout=60)
-        install_ts.name = "Install TypeScript dependencies"
-        results.append(install_ts)
-        if install_ts.ok:
-            ts = run(["cmd.exe", "/c", "npx vitest run"], cwd=REPO_ROOT / "x-runtime" / "typescript", timeout=120)
-            ts.name = "Run TypeScript tests"
-            results.append(ts)
-    if not ts_ready or not ts:
-        skip_ts = StepResult(name="Skip TypeScript tests", ok=True).finish(True, "TypeScript tests unavailable in this environment")
-        results.append(skip_ts)
-
-    kotlin_zip = REPO_ROOT / "x-runtime" / "kotlin" / "dist" / "kotlin-compiler.zip"
-    kotlin_dir = REPO_ROOT / "x-runtime" / "kotlin" / "dist" / "kotlinc"
-    kotlin_key = ctx.cache_key("kotlin", [str(kotlin_zip) if kotlin_zip.exists() else "missing"])
-    hit, kotlin_store = cache_restore("kotlin", kotlin_key)
-    if hit and ctx.cache and kotlin_dir.exists():
-        results.append(StepResult(name="Restore Kotlin cache", ok=True, output=f"cache={kotlin_store}").finish(True, ""))
-    elif not kotlin_dir.exists() and kotlin_zip.exists():
-        unzip = run(["unzip", "-q", "-o", str(kotlin_zip)], cwd=REPO_ROOT)
-        unzip.name = "Install Kotlin compiler"
-        results.append(unzip)
-        if unzip.ok:
-            cache_save("kotlin", kotlin_key, kotlin_dir)
-
-    kotlin_bin = None
-    if os.name == "nt":
-        for candidate in [
-            REPO_ROOT / "x-runtime" / "kotlin" / "dist" / "kotlinc" / "bin" / "kotlinc.bat",
-            REPO_ROOT / "x-runtime" / "kotlin" / "dist" / "kotlinc" / "bin" / "kotlinc",
-        ]:
-            if candidate.exists():
-                kotlin_bin = candidate
-                break
-    else:
-        candidate = REPO_ROOT / "x-runtime" / "kotlin" / "dist" / "kotlinc" / "bin" / "kotlinc"
-        if candidate.exists():
-            kotlin_bin = candidate
-
-    if not kotlin_bin:
-        results.append(StepResult(name="Check Kotlin compiler", ok=True).finish(True, "kotlinc not available on this host; skipping Kotlin tests"))
-        kotlin_skip = StepResult(name="Skip Kotlin tests", ok=True)
-        kotlin_skip = kotlin_skip.finish(True, "kotlinc not available on this host")
-        results.append(kotlin_skip)
-        return results
-
-    build_script = REPO_ROOT / "x-runtime" / "kotlin" / "scripts" / ("build.ps1" if os.name == "nt" else "build.sh")
-    if not build_script.exists():
-        results.append(StepResult(name="Run Kotlin tests", ok=False).finish(False, f"missing {build_script}"))
-        return results
-
-    if os.name != "nt":
-        run(["chmod", "+x", str(build_script)], cwd=REPO_ROOT)
-
-    cmd = ["pwsh", str(build_script), "test"] if os.name == "nt" else ["bash", str(build_script), "test"]
-    start = time.time()
-    try:
-        proc = subprocess.run(cmd, cwd=str(REPO_ROOT / "x-runtime" / "kotlin"), check=True, capture_output=True, text=True)
-        results.append(StepResult(name="Run Kotlin tests", ok=True, started=start).finish(True, proc.stdout + proc.stderr))
-    except FileNotFoundError as exc:
-        results.append(StepResult(name="Run Kotlin tests", ok=False, started=start).finish(False, f"missing executable: {exc.filename}"))
-    except subprocess.CalledProcessError as exc:
-        results.append(StepResult(name="Run Kotlin tests", ok=False, started=start).finish(False, exc.stdout + exc.stderr))
-
-    return results
 
 
 def job_kotlin_verify(ctx: JobContext) -> list[StepResult]:
@@ -229,7 +87,7 @@ def job_kotlin_verify(ctx: JobContext) -> list[StepResult]:
     kotlin_key = ctx.cache_key("kotlin", [str(kotlin_zip) if kotlin_zip.exists() else "missing"])
     hit, kotlin_store = cache_restore("kotlin", kotlin_key)
     if hit and ctx.cache and kotlin_dir.exists():
-        results.append(StepResult(name="Restore Kotlin cache", ok=True, output=f"cache={kotlin_store}").finish(True, ""))
+        results.append(StepResult(name="Restore Kotlin cache", ok=True, started=time.time()).finish(True, f"cache={kotlin_store}"))
     elif not kotlin_dir.exists() and kotlin_zip.exists():
         unzip = run(["unzip", "-q", "-o", str(kotlin_zip)], cwd=REPO_ROOT)
         unzip.name = "Install Kotlin compiler"
@@ -252,15 +110,14 @@ def job_kotlin_verify(ctx: JobContext) -> list[StepResult]:
             kotlin_bin = candidate
 
     if not kotlin_bin:
-        results.append(StepResult(name="Check Kotlin compiler", ok=True).finish(True, "kotlinc not available on this host; skipping Kotlin tests"))
-        kotlin_skip = StepResult(name="Skip Kotlin tests", ok=True)
-        kotlin_skip = kotlin_skip.finish(True, "kotlinc not available on this host")
+        results.append(StepResult(name="Check Kotlin compiler", ok=True, started=time.time()).finish(True, "kotlinc not available on this host; skipping Kotlin tests"))
+        kotlin_skip = StepResult(name="Skip Kotlin tests", ok=True, started=time.time()).finish(True, "kotlinc not available on this host")
         results.append(kotlin_skip)
         return results
 
     build_script = REPO_ROOT / "x-runtime" / "kotlin" / "scripts" / ("build.ps1" if os.name == "nt" else "build.sh")
     if not build_script.exists():
-        results.append(StepResult(name="Run Kotlin tests", ok=False).finish(False, f"missing {build_script}"))
+        results.append(StepResult(name="Run Kotlin tests", ok=False, started=time.time()).finish(False, f"missing {build_script}"))
         return results
 
     if os.name != "nt":
@@ -290,19 +147,19 @@ def job_verify(ctx: JobContext) -> list[StepResult]:
     rust_key = ctx.cache_key("rust", ["x-runtime/rust/Cargo.toml", "x-runtime/rust/supervisor/Cargo.toml"])
     hit, rust_store = cache_restore("rust", rust_key)
     if hit and ctx.cache:
-        results.append(StepResult(name="Restore Rust cache", ok=True, output=f"cache={rust_store}").finish(True, ""))
+        results.append(StepResult(name="Restore Rust cache", ok=True, started=time.time()).finish(True, f"cache={rust_store}"))
     else:
-        results.append(StepResult(name="Restore Rust cache", ok=True, output="miss").finish(True, ""))
+        results.append(StepResult(name="Restore Rust cache", ok=True, started=time.time()).finish(True, "miss"))
 
     if cargo:
         rust = run([cargo, "build", "--release", "-p", "hermes-runtime-protocol"], cwd=REPO_ROOT / "x-runtime" / "rust")
         rust.name = "Build Rust protocol crate"
         results.append(rust)
         if rust.ok and ctx.cache:
-            cache_save("rust", rust_key, RUST_CACHE)
+            cache_save("rust", rust_key, REPO_ROOT / "x-runtime" / "rust" / "target")
     else:
-        results.append(StepResult(name="Build Rust protocol crate", ok=False).finish(False, "cargo not found; skipping"))
-        results.append(StepResult(name="Run Rust supervisor tests", ok=False).finish(False, "cargo not found; skipping"))
+        results.append(StepResult(name="Build Rust protocol crate", ok=False, started=time.time()).finish(False, "cargo not found; skipping"))
+        results.append(StepResult(name="Run Rust supervisor tests", ok=False, started=time.time()).finish(False, "cargo not found; skipping"))
 
     if python_exec and has_pip:
         pip = run([python_exec, "-m", "pip", "install", "--upgrade", "pip"])
@@ -312,8 +169,8 @@ def job_verify(ctx: JobContext) -> list[StepResult]:
         deps.name = "Install Python dependencies"
         results.append(deps)
     else:
-        results.append(StepResult(name="Install pip", ok=False).finish(False, "python/pip not found; skipping"))
-        results.append(StepResult(name="Install Python dependencies", ok=False).finish(False, "python/pip not found; skipping"))
+        results.append(StepResult(name="Install pip", ok=False, started=time.time()).finish(False, "python/pip not found; skipping"))
+        results.append(StepResult(name="Install Python dependencies", ok=False, started=time.time()).finish(False, "python/pip not found; skipping"))
 
     if cargo:
         abi = run([cargo, "build", "--release", "-p", "hermes-runtime-abi"], cwd=REPO_ROOT / "x-runtime" / "rust")
@@ -335,9 +192,9 @@ def job_verify(ctx: JobContext) -> list[StepResult]:
             ts.name = "Run TypeScript tests"
             results.append(ts)
     elif ts_enabled:
-        results.append(StepResult(name="Install TypeScript dependencies", ok=False).finish(False, "node_modules missing; cannot prepare environment"))
+        results.append(StepResult(name="Install TypeScript dependencies", ok=False, started=time.time()).finish(False, "node_modules missing; cannot prepare environment"))
     if not ts_ready or not ts:
-        skip_ts = StepResult(name="Skip TypeScript tests", ok=True).finish(True, "TypeScript tests unavailable in this environment")
+        skip_ts = StepResult(name="Skip TypeScript tests", ok=True, started=time.time()).finish(True, "TypeScript tests unavailable in this environment")
         results.append(skip_ts)
 
     results.extend(job_kotlin_verify(ctx))
@@ -355,7 +212,7 @@ def job_verify(ctx: JobContext) -> list[StepResult]:
         clj.name = "Run Clojure tests"
         results.append(clj)
     else:
-        results.append(StepResult(name="Skip Clojure tests", ok=True).finish(True, "bb/clojure not available; skipping"))
+        results.append(StepResult(name="Skip Clojure tests", ok=True, started=time.time()).finish(True, "bb/clojure not available; skipping"))
 
     return results
 
